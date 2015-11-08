@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>Connect 4</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="Scripts/raphael.js"></script>
+
+</head>
+<body>
+    <div id="title">
+        <h1>Connect 4</h1>
+    </div>
+
+    <button id="newGame">New Game</button>
+    <label>Current Player: <span id="player"></span></label>
+
+    <div id="paper"></div>
+
+    <script type="text/javascript">
+        $(function () {
+            var paper = Raphael('paper', 0, 0);
+
+            function GameBoard() {
+
+                var colours = ['red', 'yellow'],
+                    player = 1,
+                    finished = false;
+
+                paper.clear();
+                paper.setSize(425, 425);
+                paper.rect(1, 1, 420, 420).attr({ "stroke": "#000", "fill": "#fff", "stroke-width": "2" });
+
+                $("#player").html("Player " + player).css('color', colours[player - 1]);
+
+                for (var i = 1; i <= 4; i++) {
+                    for (var j = 1; j <= 4; j++) {
+                        var disc = paper.circle(60 + (i - 1) * 100, 60 + (j -1) * 100, 45);
+                        
+                        disc.attr({
+                            "stroke": "#000",
+                            "fill": "#fff",
+                            "stroke-width": "1"
+                        });
+                        $(disc.node).attr("id", i + "_" + (4 - j)).data("column", i);
+
+                        disc.click(function () {
+                            var col = $(this.node).data("column");
+                            if (!finished) {
+                                $.ajax({ "method": "GET", "url": "/api/game/dropDiskAt?col=" + col + "&player=" + player }).done(function (row) {
+
+                                    $("circle[id=" + col + "_" + row + "]").attr("fill", colours[player - 1]);
+
+                                    $.ajax({ "method": "GET", "url": "/api/game/checkIfWin?col=" + col + "&row=" + row + "&player=" + player }).done(function (win) {
+                                        if (win) {
+                                            finished = true;
+                                            alert("Player" + player + "wins!");
+                                        } else {
+                                            player = (player % 2) + 1;
+                                            console.log(player);
+                                            $("#player").html("Player " + player).css('color', colours[player - 1]);;
+                                        }
+                                    });
+                                }).fail(function (error) {
+                                    alert(error.responseText);
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+
+            $('#newGame').click(function () {
+                $.ajax({ "method": "POST", "url": "/api/game/new" }).done(function () {
+                    GameBoard();
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>
